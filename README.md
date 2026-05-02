@@ -14,7 +14,7 @@ Um site funcional para agendamento de cortes de barbearia desenvolvido com HTML5
 ### 1️⃣ Clonar o repositório
 
 ```bash
-git clone https://github.com/SEU_USUARIO/barbearia.git
+git clone https://github.com/CaiqueCrepaldi/barbearia.git
 cd barbearia
 ```
 
