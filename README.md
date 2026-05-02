@@ -209,4 +209,4 @@ barbearia/
 
 ---
 
-Desenvolvido com ❤️ para Barbearia Premium
+Desenvolvido por Caique Crepaldi - 2026
