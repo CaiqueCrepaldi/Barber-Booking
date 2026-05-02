@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Perfil</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .perfil-container { max-width: 600px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px #0001; padding: 32px; }
+    .perfil-title { text-align: center; margin-bottom: 32px; color: #1a1a1a; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+    .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+    .btn { padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .btn:hover { background: #0056b3; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1 class="logo">✂️ Barbearia</h1>
+      <nav>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="index.html#servicos">Serviços</a></li>
+          <li><a href="index.html#agendar">Agendar</a></li>
+          <li><a href="index.html#contato">Contato</a></li>
+          <li id="nav-login"><a href="login.html">Login</a></li>
+          <li id="nav-agendamentos" style="display:none;"><a href="meus-agendamentos.html">Meus Agendamentos</a></li>
+          <li id="nav-perfil" style="display:none;"><a href="perfil.html">Perfil</a></li>
+          <li id="nav-logout" style="display:none;"><a href="#" onclick="logoutUser();return false;">Logout</a></li>
+          <script>
+            async function checkSessionNavbar() {
+              const res = await fetch('/api/session');
+              const data = await res.json();
+              const navLogin = document.getElementById('nav-login');
+              const navAg = document.getElementById('nav-agendamentos');
+              const navPerfil = document.getElementById('nav-perfil');
+              const navLogout = document.getElementById('nav-logout');
+              if (data.loggedIn) {
+                navLogin.style.display = 'none';
+                navAg.style.display = '';
+                navPerfil.style.display = '';
+                navLogout.style.display = '';
+              } else {
+                navLogin.style.display = '';
+                navAg.style.display = 'none';
+                navPerfil.style.display = 'none';
+                navLogout.style.display = 'none';
+              }
+            }
+            checkSessionNavbar();
+            window.logoutUser = async function() {
+              await fetch('/api/logout', { method: 'POST' });
+              window.location.href = 'index.html';
+            }
+          </script>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <div class="perfil-container">
+    <h1 class="perfil-title">Meu Perfil</h1>
+    <form id="formPerfil">
+      <div class="form-group">
+        <label for="nome">Nome:</label>
+        <input type="text" id="nome" required>
+      </div>
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" required>
+      </div>
+      <div class="form-group">
+        <label for="senha">Nova Senha (deixe em branco para não alterar):</label>
+        <input type="password" id="senha">
+      </div>
+      <button type="submit" class="btn">Salvar Alterações</button>
+    </form>
+  </div>
+  <script>
+    // Carregar dados do usuário
+    async function carregarPerfil() {
+      const res = await fetch('/api/session');
+      const data = await res.json();
+      if (!data.loggedIn) {
+        window.location.href = 'login.html';
+        return;
+      }
+      document.getElementById('nome').value = data.user.nome || data.user.usuario;
+      document.getElementById('email').value = data.user.email;
+    }
+    carregarPerfil();
+
+    // Salvar alterações
+    document.getElementById('formPerfil').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nome = document.getElementById('nome').value;
+      const email = document.getElementById('email').value;
+      const senha = document.getElementById('senha').value;
+      
+      const res = await fetch('/api/perfil', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome, email, senha })
+      });
+      if (res.ok) {
+        alert('Perfil atualizado com sucesso!');
+        location.reload();
+      } else {
+        alert('Erro ao atualizar perfil.');
+      }
+    });
+  </script>
+</body>
+</html>

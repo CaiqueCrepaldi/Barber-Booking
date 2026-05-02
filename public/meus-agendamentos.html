@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meus Agendamentos</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .user-container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px #0001; padding: 32px; }
+    .user-title { text-align: center; margin-bottom: 32px; color: #1a1a1a; }
+    .user-table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+    .user-table th, .user-table td { padding: 12px 8px; border-bottom: 1px solid #eee; text-align: left; }
+    .user-table th { background: #f5f5f5; color: #1a1a1a; }
+    .user-table tr:last-child td { border-bottom: none; }
+    .btn-edit, .btn-cancel { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; }
+    .btn-edit { background: #007bff; color: white; }
+    .btn-edit:hover { background: #0056b3; }
+    .btn-cancel { background: #dc3545; color: white; }
+    .btn-cancel:hover { background: #c82333; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1 class="logo">✂️ Barbearia</h1>
+      <nav>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="index.html#servicos">Serviços</a></li>
+          <li><a href="index.html#agendar">Agendar</a></li>
+          <li><a href="index.html#contato">Contato</a></li>
+          <li id="nav-login"><a href="login.html">Login</a></li>
+          <li id="nav-agendamentos" style="display:none;"><a href="meus-agendamentos.html">Meus Agendamentos</a></li>
+          <li id="nav-logout" style="display:none;"><a href="#" onclick="logoutUser();return false;">Logout</a></li>
+          <script>
+            // Navbar dinâmica conforme login
+            async function checkSessionNavbar() {
+              const res = await fetch('/api/session');
+              const data = await res.json();
+              const navLogin = document.getElementById('nav-login');
+              const navAg = document.getElementById('nav-agendamentos');
+              const navLogout = document.getElementById('nav-logout');
+              if (data.loggedIn) {
+                navLogin.style.display = 'none';
+                navAg.style.display = '';
+                navLogout.style.display = '';
+              } else {
+                navLogin.style.display = '';
+                navAg.style.display = 'none';
+                navLogout.style.display = 'none';
+              }
+            }
+            checkSessionNavbar();
+            window.logoutUser = async function() {
+              await fetch('/api/logout', { method: 'POST' });
+              window.location.href = 'index.html';
+            }
+          </script>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <div class="user-container">
+    <h1 class="user-title">Meus Agendamentos</h1>
+    <table class="user-table" id="agendamentosTable">
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Horário</th>
+          <th>Serviço</th>
+          <th>Agendado em</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="agendamentosBody">
+        <!-- Linhas serão inseridas via JS -->
+      </tbody>
+    </table>
+  </div>
+  <script>
+    // Busca agendamentos do usuário autenticado
+    fetch('/api/meus-agendamentos')
+      .then(res => {
+        if (res.status === 401) {
+          window.location.href = 'login.html';
+          return null;
+        }
+        return res.json();
+      })
+      .then(agendamentos => {
+        if (!agendamentos) return;
+        const tbody = document.getElementById('agendamentosBody');
+        tbody.innerHTML = '';
+        if (!agendamentos.length) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum agendamento encontrado.</td></tr>';
+          return;
+        }
+        agendamentos.forEach(ag => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${formatarData(ag.data)}</td>
+            <td>${ag.horario}</td>
+            <td>${ag.servico}</td>
+            <td>${formatarDataHora(ag.data_agendamento)}</td>
+            <td>
+              <button onclick="editarAgendamento(${ag.id}, '${ag.data}', '${ag.horario}', '${ag.servico}', '${ag.telefone}')" class="btn-edit">Editar</button>
+              <button onclick="cancelarAgendamento(${ag.id})" class="btn-cancel">Cancelar</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      })
+      .catch(() => {
+        document.getElementById('agendamentosBody').innerHTML = '<tr><td colspan="5" style="color:#b00;text-align:center;">Erro ao carregar agendamentos.</td></tr>';
+      });
+    function formatarData(dataStr) {
+      if (!dataStr) return '';
+      const d = new Date(dataStr);
+      if (isNaN(d)) return dataStr;
+      return d.toLocaleDateString('pt-BR');
+    }
+    function formatarDataHora(dataStr) {
+      if (!dataStr) return '';
+      const d = new Date(dataStr);
+      if (isNaN(d)) return dataStr;
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR').slice(0,5);
+    }
+    async function editarAgendamento(id, data, horario, servico, telefone) {
+      // Abrir modal de edição
+      const novaData = prompt('Nova data (AAAA-MM-DD):', data);
+      if (!novaData) return;
+      const novoHorario = prompt('Novo horário (HH:MM):', horario);
+      if (!novoHorario) return;
+      const novoServico = prompt('Novo serviço:', servico);
+      if (!novoServico) return;
+      const novoTelefone = prompt('Novo telefone:', telefone);
+      if (!novoTelefone) return;
+      
+      const res = await fetch(`/api/agendar/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: novaData, horario: novoHorario, servico: novoServico, telefone: novoTelefone })
+      });
+      if (res.ok) {
+        alert('Agendamento atualizado!');
+        location.reload();
+      } else {
+        alert('Erro ao atualizar agendamento.');
+      }
+    }
+    async function cancelarAgendamento(id) {
+      if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
+      const res = await fetch(`/api/agendar/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert('Agendamento cancelado!');
+        location.reload();
+      } else {
+        alert('Erro ao cancelar agendamento.');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Barbearia - Agendamento Online</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
+</head>
+<body>
+  <header>
+    <div class="container">
+      <div class="logo-container">
+        <img src="img/logo.png" alt="Barbearia" class="logo-img">
+        <h1 class="logo-text">Barbearia</h1>
+      </div>
+      <nav>
+        <ul>
+          <li><a href="#home">Home</a></li>
+          <li><a href="#servicos">Serviços</a></li>
+          <li><a href="#agendar">Agendar</a></li>
+          <li><a href="#contato">Contato</a></li>
+          <li id="nav-login"><a href="login.html">Login</a></li>
+          <li id="nav-agendamentos" style="display:none;"><a href="meus-agendamentos.html">Meus Agendamentos</a></li>
+          <li id="nav-perfil" style="display:none;"><a href="perfil.html">Perfil</a></li>
+          <li id="nav-logout" style="display:none;"><a href="#" onclick="logoutUser();return false;">Logout</a></li>
+          <script>
+            // Navbar dinâmica conforme login
+            async function checkSessionNavbar() {
+              const res = await fetch('/api/session');
+              const data = await res.json();
+              const navLogin = document.getElementById('nav-login');
+              const navAg = document.getElementById('nav-agendamentos');
+              const navPerfil = document.getElementById('nav-perfil');
+              const navLogout = document.getElementById('nav-logout');
+              if (data.loggedIn) {
+                navLogin.style.display = 'none';
+                navAg.style.display = '';
+                navPerfil.style.display = '';
+                navLogout.style.display = '';
+              } else {
+                navLogin.style.display = '';
+                navAg.style.display = 'none';
+                navPerfil.style.display = 'none';
+                navLogout.style.display = 'none';
+              }
+            }
+            checkSessionNavbar();
+            window.logoutUser = async function() {
+              await fetch('/api/logout', { method: 'POST' });
+              window.location.href = 'index.html';
+            }
+          </script>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Seção Home -->
+    <section id="home" class="hero">
+      <div class="container">
+        <div class="hero-content">
+          <h2>Bem-vindo à Barbearia</h2>
+          <p>Expertise em cuidados capilares com profissionais de excelência</p>
+          <a href="#agendar" class="btn btn-primary">Agendar Corte</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Seção de Serviços -->
+    <section id="servicos" class="servicos">
+      <div class="container">
+        <h2>Nossos Serviços</h2>
+        <div class="servicos-grid">
+          <div class="servico-card">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT7Vxn0tgdCRq-ecncMR-n542NAqhS5X_2vdQ&s" alt="Corte Simples" class="servico-img">
+            <h3>Corte Simples</h3>
+            <p class="preco">R$ 35,00</p>
+            <p>Corte clássico e bem feito</p>
+          </div>
+          <div class="servico-card">
+            <img src="https://i.pinimg.com/736x/2a/52/a3/2a52a3abb1e5f89b2693861cea363fc0.jpg" alt="Corte + Barba" class="servico-img">
+            <h3>Corte + Barba</h3>
+            <p class="preco">R$ 55,00</p>
+            <p>Corte + acabamento da barba</p>
+          </div>
+          <div class="servico-card">
+            <img src="https://osegredo.com.br/wp-content/uploads/2023/08/Veja-25-modelos-de-corte-low-fade-masculino-para-voce-se-inspirar-imagem-3-2.jpg.webp" alt="Corte Premium" class="servico-img">
+            <h3>Corte Premium</h3>
+            <p class="preco">R$ 70,00</p>
+            <p>Corte com design + barba + acabamento</p>
+          </div>
+          <div class="servico-card">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSl3jTHZyiBHw1raBW8Zh5zURfa_9HyFp5HUQ&s" alt="Barba" class="servico-img">
+            <h3>Barba</h3>
+            <p class="preco">R$ 30,00</p>
+            <p>Aparagem e acabamento da barba</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Seção de Agendamento -->
+    <section id="agendar" class="agendamento">
+      <div class="container">
+        <h2>Agende seu Corte</h2>
+        <form id="formAgendamento" class="form-agendamento">
+          <div class="form-group">
+            <label for="nome">Nome Completo *</label>
+            <input 
+              type="text" 
+              id="nome" 
+              name="nome" 
+              required 
+              placeholder="Digite seu nome"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="telefone">Telefone/WhatsApp *</label>
+            <input 
+              type="tel" 
+              id="telefone" 
+              name="telefone" 
+              required 
+              placeholder="(11) 99999-9999"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Data do Agendamento *</label>
+            <div class="calendar-wrapper">
+              <input 
+                type="date" 
+                id="data" 
+                name="data" 
+                class="calendar-input"
+                required
+              >
+              <div class="calendar-icon">📅</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="horarioSelect">Horário Disponível *</label>
+            <div id="horarios-container" class="horarios-grid">
+              <div class="horarios-placeholder">Selecione uma data primeiro</div>
+            </div>
+            <input type="hidden" id="horario" name="horario" required>
+          </div>
+
+          <div class="form-group">
+            <label for="servico">Serviço *</label>
+            <select id="servico" name="servico" required>
+              <option value="">Selecione um serviço</option>
+              <option value="Corte Simples">Corte Simples - R$ 35,00</option>
+              <option value="Corte + Barba">Corte + Barba - R$ 55,00</option>
+              <option value="Corte Premium">Corte Premium - R$ 70,00</option>
+              <option value="Barba">Barba - R$ 30,00</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary">Confirmar Agendamento</button>
+        </form>
+
+        <div id="mensagem" class="mensagem" style="display: none;"></div>
+      </div>
+    </section>
+
+    <!-- Seção de Contato -->
+    <section id="contato" class="contato">
+      <div class="container">
+        <h2>Encontre-nos</h2>
+        <div class="contato-info">
+          <div class="info-item">
+            <h3>📍 Endereço</h3>
+            <p>Rua Exemplo, 123 - Bairro - Cidade, SP</p>
+          </div>
+          <div class="info-item">
+            <h3>📞 Telefone</h3>
+            <p>(11) 9999-9999</p>
+          </div>
+          <div class="info-item">
+            <h3>⏰ Horário de Funcionamento</h3>
+            <p>Seg-Sex: 09:00 - 18:00<br>Sábado: 09:00 - 14:00</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Barbearia - Todos os direitos reservados</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

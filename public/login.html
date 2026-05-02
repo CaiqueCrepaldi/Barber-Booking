@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Barbearia</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .login-container { max-width: 350px; margin: 80px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px #0001; padding: 32px; }
+    .login-title { text-align: center; margin-bottom: 32px; color: #1a1a1a; }
+    .login-form label { font-weight: 600; }
+    .login-form input { width: 100%; padding: 10px; margin: 10px 0 20px 0; border-radius: 5px; border: 1px solid #ccc; }
+    .login-form button { width: 100%; padding: 12px; background: #d4af37; color: #1a1a1a; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+    .login-form button:hover { background: #f0c547; }
+    .login-error { color: #b00; text-align: center; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+  <div class="login-container">
+    <h2 class="login-title">Login do Usuário</h2>
+    <div id="loginError" class="login-error" style="display:none;"></div>
+    <form class="login-form" onsubmit="return loginUser(event)">
+      <label for="userLogin">Usuário</label>
+      <input type="text" id="userLogin" placeholder="Usuário" required>
+      <label for="userPass">Senha</label>
+      <input type="password" id="userPass" placeholder="Senha" required>
+      <button type="submit">Entrar</button>
+    </form>
+    <div style="text-align:center;margin-top:10px;">
+      <a href="registro.html">Não tem conta? Registre-se</a>
+    </div>
+  </div>
+  <script>
+    async function loginUser(e) {
+      e.preventDefault();
+      const user = document.getElementById('userLogin').value.trim();
+      const pass = document.getElementById('userPass').value.trim();
+      const errorDiv = document.getElementById('loginError');
+      errorDiv.style.display = 'none';
+      if (!user || !pass) {
+        errorDiv.textContent = 'Preencha login e senha!';
+        errorDiv.style.display = 'block';
+        return false;
+      }
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ login: user, senha: pass })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          if (user === 'admin') {
+            window.location.href = 'admin.html';
+          } else {
+            window.location.href = 'index.html';
+          }
+          return false;
+        } else {
+          errorDiv.textContent = data.error || 'Usuário ou senha inválidos!';
+          errorDiv.style.display = 'block';
+        }
+      } catch (err) {
+        errorDiv.textContent = 'Erro ao conectar com o servidor.';
+        errorDiv.style.display = 'block';
+      }
+      return false;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Administrativo - Agendamentos</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .admin-container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px #0001; padding: 32px; }
+    .admin-title { text-align: center; margin-bottom: 32px; color: #1a1a1a; }
+    .admin-table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+    .admin-table th, .admin-table td { padding: 12px 8px; border-bottom: 1px solid #eee; text-align: left; }
+    .admin-table th { background: #f5f5f5; color: #1a1a1a; }
+    .admin-table tr:last-child td { border-bottom: none; }
+    .admin-login { max-width: 350px; margin: 60px auto; background: #fafafa; border-radius: 8px; box-shadow: 0 2px 8px #0001; padding: 32px; }
+    .admin-login label { font-weight: 600; }
+    .admin-login input { width: 100%; padding: 10px; margin: 10px 0 20px 0; border-radius: 5px; border: 1px solid #ccc; }
+    .admin-login button { width: 100%; padding: 12px; background: #d4af37; color: #1a1a1a; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
+    .admin-login button:hover { background: #f0c547; }
+    .admin-error { color: #b00; text-align: center; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <header>''
+    <div class="container">
+      <h1 class="logo">✂️ Barbearia</h1>
+      <nav>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="index.html#servicos">Serviços</a></li>
+          <li><a href="index.html#agendar">Agendar</a></li>
+          <li><a href="index.html#contato">Contato</a></li>
+          <li id="nav-login"><a href="login.html">Login</a></li>
+          <li id="nav-agendamentos" style="display:none;"><a href="meus-agendamentos.html">Meus Agendamentos</a></li>
+          <li id="nav-logout" style="display:none;"><a href="#" onclick="logoutUser();return false;">Logout</a></li>
+          <script>
+            // Navbar dinâmica conforme login
+            async function checkSessionNavbar() {
+              const res = await fetch('/api/session');
+              const data = await res.json();
+              const navLogin = document.getElementById('nav-login');
+              const navAg = document.getElementById('nav-agendamentos');
+              const navLogout = document.getElementById('nav-logout');
+              if (data.loggedIn) {
+                navLogin.style.display = 'none';
+                navAg.style.display = '';
+                navLogout.style.display = '';
+              } else {
+                navLogin.style.display = '';
+                navAg.style.display = 'none';
+                navLogout.style.display = 'none';
+              }
+            }
+            checkSessionNavbar();
+            window.logoutUser = async function() {
+              await fetch('/api/logout', { method: 'POST' });
+              window.location.href = 'index.html';
+            }
+          </script>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <div id="loginSection" class="admin-login">
+    <h2>Painel do Administrador</h2>
+    <div id="loginError" class="admin-error" style="display:none;"></div>
+    <label for="adminUser">Usuário</label>
+    <input type="text" id="adminUser" placeholder="Usuário" required>
+    <label for="adminPass">Senha</label>
+    <input type="password" id="adminPass" placeholder="Senha" required>
+    <button onclick="loginAdmin()">Entrar</button>
+  </div>
+
+  <div id="adminPanel" class="admin-container" style="display:none;">
+    <h1 class="admin-title">Agendamentos Recebidos</h1>
+    <table class="admin-table" id="agendamentosTable">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Telefone</th>
+          <th>Data</th>
+          <th>Horário</th>
+          <th>Serviço</th>
+          <th>Agendado em</th>
+        </tr>
+      </thead>
+      <tbody id="agendamentosBody">
+        <!-- Linhas serão inseridas via JS -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    // Login simples (usuário: admin, senha: 1234)
+    function loginAdmin() {
+      const user = document.getElementById('adminUser').value.trim();
+      const pass = document.getElementById('adminPass').value.trim();
+      const errorDiv = document.getElementById('loginError');
+      if (user === 'admin' && pass === '1234') {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('adminPanel').style.display = 'block';
+        carregarAgendamentos();
+      } else {
+        errorDiv.textContent = 'Usuário ou senha inválidos!';
+        errorDiv.style.display = 'block';
+      }
+    }
+
+    // Buscar agendamentos do backend
+    function carregarAgendamentos() {
+      fetch('/admin/agendamentos')
+        .then(res => res.json())
+        .then(agendamentos => {
+          const tbody = document.getElementById('agendamentosBody');
+          tbody.innerHTML = '';
+          if (agendamentos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhum agendamento encontrado.</td></tr>';
+            return;
+          }
+          agendamentos.forEach(ag => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${ag.nome}</td>
+              <td>${ag.telefone}</td>
+              <td>${formatarData(ag.data)}</td>
+              <td>${ag.horario}</td>
+              <td>${ag.servico}</td>
+              <td>${formatarDataHora(ag.data_agendamento)}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        })
+        .catch(() => {
+          document.getElementById('agendamentosBody').innerHTML = '<tr><td colspan="6" style="color:#b00;text-align:center;">Erro ao carregar agendamentos.</td></tr>';
+        });
+    }
+
+    function formatarData(dataStr) {
+      if (!dataStr) return '';
+      const d = new Date(dataStr);
+      if (isNaN(d)) return dataStr;
+      return d.toLocaleDateString('pt-BR');
+    }
+    function formatarDataHora(dataStr) {
+      if (!dataStr) return '';
+      const d = new Date(dataStr);
+      if (isNaN(d)) return dataStr;
+      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR').slice(0,5);
+    }
+  </script>
+</body>
+</html>
