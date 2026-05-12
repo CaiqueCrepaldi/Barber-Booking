@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const path = require('path');
 const bodyParser = require('body-parser');
 const mysql = require('mysql2/promise');
 const session = require('express-session');
@@ -31,7 +32,7 @@ app.use(session({
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Banco de dados — senha obrigatória via env var
 if (!process.env.MYSQL_PASSWORD) {

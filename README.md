@@ -60,6 +60,7 @@ cd barbearia
 ### 2. Instalar dependências
 
 ```bash
+cd backend
 npm install
 ```
 
@@ -97,7 +98,7 @@ CREATE TABLE IF NOT EXISTS agendamentos (
 
 ### 4. Configurar variáveis de ambiente
 
-Crie o arquivo `.env` na raiz do projeto:
+Crie o arquivo `.env` dentro de `backend/`:
 
 ```env
 PORT=3001
@@ -124,6 +125,7 @@ GMAIL_PASS=xxxx xxxx xxxx xxxx
 ### 5. Iniciar o servidor
 
 ```bash
+cd backend
 npm start
 ```
 
@@ -135,17 +137,25 @@ Acesse: **http://localhost:3001**
 
 ```
 barbearia/
-├── public/
+├── frontend/
+│   ├── img/
+│   │   └── logo.png
 │   ├── index.html              # Página principal (hero, serviços, agendamento, contato)
 │   ├── login.html              # Login de usuário
 │   ├── registro.html           # Cadastro de usuário
 │   ├── forgot-password.html    # Recuperação de senha (3 etapas: e-mail → OTP → nova senha)
 │   ├── meus-agendamentos.html  # Gerenciamento de agendamentos do usuário
 │   ├── admin.html              # Painel administrativo
+│   ├── perfil.html             # Página de perfil do usuário
 │   ├── style.css               # Estilos globais (tema dark/gold)
 │   └── script.js               # Lógica do formulário de agendamento
-├── server.js                   # API REST + middleware + migrations
-├── package.json
+├── backend/
+│   ├── server.js               # API REST + middleware + migrations
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── node_modules/           # gerado por npm install
+│   └── .env                    # variáveis de ambiente (não commitado)
+├── .gitignore
 └── README.md
 ```
 
@@ -188,7 +198,7 @@ Em produção, defina também `NODE_ENV=production` e use HTTPS.
 
 | Erro | Solução |
 |------|---------|
-| `Cannot find module` | Execute `npm install` |
+| `Cannot find module` | Execute `npm install` dentro de `backend/` |
 | `Connection refused` | Verifique se o MySQL está rodando e confira as variáveis do `.env` |
 | `Unknown database` | Crie o banco conforme o schema acima |
 | E-mail não enviado | Confira `GMAIL_USER` e `GMAIL_PASS` (use Senha de App, não a senha normal) |
