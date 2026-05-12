@@ -1,212 +1,199 @@
-# Barbearia - Sistema de Agendamento
+# Barbearia — Sistema de Agendamento
 
-Um site funcional para agendamento de cortes de barbearia desenvolvido com HTML5, CSS3, JavaScript, Node.js e MySQL.
+Site completo para agendamento de serviços de barbearia, com autenticação de usuários, painel administrativo, recuperação de senha por OTP e notificações por e-mail.
+
+## ✨ Funcionalidades
+
+### Clientes
+- Cadastro e login com senha criptografada (bcrypt)
+- Recuperação de senha por código OTP de 6 dígitos enviado por e-mail
+- Agendamento online com seletor de data (Flatpickr) e grid de horários disponíveis
+- Proteção contra duplo agendamento (UNIQUE INDEX no banco + verificação no servidor)
+- Página **Meus Agendamentos** com edição e cancelamento interativos
+- Notificação por e-mail ao agendar, editar ou cancelar
+
+### Estabelecimento
+- E-mail automático ao dono a cada novo agendamento, edição e cancelamento
+- Painel administrativo protegido por credenciais de ambiente
+- Visualização e gerenciamento de todos os agendamentos
+
+### Segurança
+- Senhas armazenadas com bcrypt (custo 12)
+- Sessions HTTP-only com expiração de 15 min
+- Rate limiting no envio de OTP (60 s entre tentativas)
+- Máximo de 5 tentativas de validação do OTP
+- Sanitização de entradas nas mensagens
+- Variáveis sensíveis exclusivamente via `.env`
+
+---
+
+## 🛠 Tecnologias
+
+| Camada | Tecnologias |
+|--------|-------------|
+| Frontend | HTML5, CSS3, JavaScript vanilla, Flatpickr |
+| Backend | Node.js, Express.js |
+| Banco de dados | MySQL 2 (pool de conexões) |
+| Autenticação | express-session, bcryptjs |
+| E-mail | Nodemailer (Gmail SMTP) |
+| Agendamento | node-cron (limpeza automática de slots expirados) |
+
+---
 
 ## 📋 Pré-requisitos
 
-- Node.js instalado
-- MySQL instalado e rodando
-- MySQL Workbench (para gerenciar o banco)
-- npm (gerenciador de pacotes do Node.js)
+- Node.js 18+
+- MySQL 8+ rodando localmente
+- Conta Gmail com [Senha de App](https://myaccount.google.com/apppasswords) (para envio de e-mails)
+
+---
 
 ## 🚀 Instalação
 
-### 1️⃣ Clonar o repositório
+### 1. Clonar o repositório
 
 ```bash
 git clone https://github.com/CaiqueCrepaldi/Barber-Booking.git
 cd barbearia
 ```
 
-### 2️⃣ Instalar dependências do Node.js
+### 2. Instalar dependências
 
 ```bash
 npm install
 ```
 
-### 3️⃣ Configurar o banco de dados MySQL
+### 3. Configurar o banco de dados
 
-**Opção A: Usar o script SQL fornecido**
-
-Execute o arquivo `schema.sql` no MySQL Workbench ou via linha de comando:
-
-```bash
-mysql -u root -p < schema.sql
-```
-
-**Opção B: Configuração manual no MySQL Workbench**
-
-Se preferir configurar manualmente, execute estes comandos SQL:
+Execute no MySQL Workbench ou via CLI:
 
 ```sql
--- Criar banco de dados
 CREATE DATABASE IF NOT EXISTS barbearia_db;
 USE barbearia_db;
 
--- Tabela de usuários
 CREATE TABLE IF NOT EXISTS usuarios (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    usuario VARCHAR(50) NOT NULL UNIQUE,
-    senha VARCHAR(255) NOT NULL,
-    nome VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  id       INT AUTO_INCREMENT PRIMARY KEY,
+  usuario  VARCHAR(50)  NOT NULL UNIQUE,
+  senha    VARCHAR(255) NOT NULL,
+  nome     VARCHAR(100) NOT NULL,
+  email    VARCHAR(100) NOT NULL UNIQUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Tabela de agendamentos
 CREATE TABLE IF NOT EXISTS agendamentos (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    nome VARCHAR(100) NOT NULL,
-    telefone VARCHAR(20),
-    data DATE NOT NULL,
-    horario TIME NOT NULL,
-    servico VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    INDEX idx_data_horario (data, horario),
-    INDEX idx_nome (nome)
+  id        INT AUTO_INCREMENT PRIMARY KEY,
+  nome      VARCHAR(100) NOT NULL,
+  telefone  VARCHAR(20),
+  data      DATE         NOT NULL,
+  horario   TIME         NOT NULL,
+  servico   VARCHAR(100) NOT NULL,
+  data_agendamento TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE INDEX unique_slot (data, horario),
+  INDEX idx_nome (nome)
 );
 ```
 
-### 4️⃣ Configurar credenciais do MySQL
+> As colunas de recuperação de senha (`reset_token`, `reset_token_expiry`, `reset_token_attempts`) e o índice `unique_slot` são adicionados automaticamente pelas migrations ao iniciar o servidor, caso ainda não existam.
 
-**Opção A: Usar arquivo .env (recomendado)**
+### 4. Configurar variáveis de ambiente
 
-1. Copie o arquivo de exemplo:
-   ```bash
-   cp .env.example .env
-   ```
+Crie o arquivo `.env` na raiz do projeto:
 
-2. Edite o arquivo `.env` com suas credenciais reais.
+```env
+PORT=3001
+SESSION_SECRET=gere_uma_string_longa_e_aleatoria
 
-**Opção B: Configuração direta no código**
+# Painel administrativo
+ADMIN_USER=admin
+ADMIN_PASSWORD=sua_senha_admin
 
-Abra o arquivo `server.js` e configure suas credenciais (linhas 18-23):
+# MySQL
+MYSQL_HOST=localhost
+MYSQL_USER=root
+MYSQL_PASSWORD=sua_senha_mysql
+MYSQL_DATABASE=barbearia_db
 
-```javascript
-const dbConfig = {
-  host: 'localhost',
-  user: 'root',
-  password: 'sua_senha_mysql', // ⚠️ ALTERE PARA SUA SENHA REAL
-  database: 'barbearia_db',
-  ...
-};
+# Gmail — use uma Senha de App (não a senha normal)
+# https://myaccount.google.com/apppasswords
+GMAIL_USER=seu@gmail.com
+GMAIL_PASS=xxxx xxxx xxxx xxxx
 ```
 
-### 5️⃣ Iniciar o servidor
+> Se `GMAIL_USER`/`GMAIL_PASS` não forem preenchidos, o sistema entra em **modo demo**: o código OTP é retornado diretamente na resposta da API, exibido na tela para fins de teste.
+
+### 5. Iniciar o servidor
 
 ```bash
 npm start
-# ou
-node server.js
 ```
 
-### 6️⃣ Acessar a aplicação
+Acesse: **http://localhost:3001**
 
-Abra o navegador e acesse: **http://localhost:3001**
-
-## 📦 Subindo para o GitHub
-
-O banco de dados MySQL **não deve ser incluído** no repositório Git. Em vez disso:
-
-1. **Crie o arquivo `.gitignore`** (já incluído no projeto) para evitar subir arquivos desnecessários
-2. **Suba apenas o código**:
-   ```bash
-   git init
-   git add .
-   git commit -m "Initial commit - Sistema de agendamento barbearia"
-   git branch -M main
-   git remote add origin https://github.com/SEU_USUARIO/barbearia.git
-   git push -u origin main
-   ```
-
-3. **Para colaboradores**: Eles devem executar o `schema.sql` localmente para criar as tabelas.
-
-> 📖 **Para instruções completas de deploy**, consulte o arquivo [`DEPLOY.md`](DEPLOY.md).
-
-## 🔧 Configuração de Produção
-
-Para deploy em produção, considere usar:
-
-- **Railway** ou **PlanetScale** para MySQL na nuvem
-- **Vercel** ou **Heroku** para o backend Node.js
-- **Render** ou **Fly.io** para hospedagem completa
-- Variáveis de ambiente para credenciais sensíveis
-
-### Exemplo de configuração no Railway:
-
-1. **Banco de dados**: Crie um banco MySQL no Railway
-2. **Backend**: Faça deploy do código Node.js
-3. **Variáveis de ambiente**: Configure as variáveis no painel do Railway
-4. **Script de inicialização**: Execute o `schema.sql` no banco de produção
-
-### Segurança em Produção:
-
-- Nunca commite credenciais reais no código
-- Use senhas fortes e únicas
-- Configure firewall para aceitar apenas conexões necessárias
-- Use HTTPS em produção
-- Mantenha as dependências atualizadas
+---
 
 ## 📁 Estrutura do Projeto
 
 ```
 barbearia/
 ├── public/
-│   ├── index.html      # Página principal (HTML5)
-│   ├── style.css       # Estilos (CSS3)
-│   └── script.js       # Interatividade (JavaScript)
-├── server.js           # Servidor Node.js/Express
-├── package.json        # Dependências do projeto
-└── README.md          # Este arquivo
+│   ├── index.html              # Página principal (hero, serviços, agendamento, contato)
+│   ├── login.html              # Login de usuário
+│   ├── registro.html           # Cadastro de usuário
+│   ├── forgot-password.html    # Recuperação de senha (3 etapas: e-mail → OTP → nova senha)
+│   ├── meus-agendamentos.html  # Gerenciamento de agendamentos do usuário
+│   ├── admin.html              # Painel administrativo
+│   ├── style.css               # Estilos globais (tema dark/gold)
+│   └── script.js               # Lógica do formulário de agendamento
+├── server.js                   # API REST + middleware + migrations
+├── package.json
+└── README.md
 ```
-
-## 🎨 Funcionalidades da Home Page
-
-- **Header com navegação** - Menu sticky com links para seções
-- **Seção Hero** - Introdução com chamada para ação
-- **Catálogo de Serviços** - Apresentação dos serviços com preços
-- **Formulário de Agendamento** - Coleta dados do cliente
-  - Validação de campos obrigatórios
-  - Validação de telefone
-  - Validação de datas (não permite data no passado)
-  - Mensagens de sucesso/erro
-  - Integração com backend (salva no MySQL)
-- **Seção de Contato** - Informações da barbearia
-- **Footer** - Rodapé com copyright
-- **Design Responsivo** - Funciona em mobile e desktop
-
-## 💻 Tecnologias Utilizadas
-
-- **Frontend:** HTML5, CSS3, JavaScript vanilla
-- **Backend:** Node.js, Express.js
-- **Banco de Dados:** MySQL
-- **Dependências:** 
-  - `express` - Framework web
-  - `mysql2` - Driver MySQL
-  - `body-parser` - Middleware para parsing JSON
-
-## 📝 Próximas Melhorias
-
-- Autenticação de usuários (admin)
-- Dashboard administrativo
-- Painel de controle de agendamentos
-- Envio de notificações por WhatsApp
-- Revisão de serviços
-- Sistema de pagamento
-- Relatórios de vendas
-- Integração com calendário
-
-## 🆘 Troubleshooting
-
-**Erro: "Cannot find module"**
-- Solução: Execute `npm install` para instalar as dependências
-
-**Erro: "Connection refused"**
-- Solução: Verifique se o MySQL está rodando e configure as credenciais corretamente em `server.js`
-
-**Erro: "Unknown database"**
-- Solução: Crie o banco de dados no MySQL Workbench conforme instruções acima
 
 ---
 
-Desenvolvido por Caique Crepaldi - 2026
+## 🔌 Endpoints da API
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/api/registrar` | Cadastro de usuário |
+| POST | `/api/login` | Login de usuário |
+| POST | `/api/logout` | Logout |
+| GET  | `/api/session` | Verifica sessão ativa |
+| POST | `/api/forgot-password` | Solicita código OTP de recuperação |
+| POST | `/api/verify-otp` | Valida o código OTP |
+| POST | `/api/reset-password` | Redefine a senha (requer OTP validado) |
+| GET  | `/api/horarios?data=YYYY-MM-DD` | Lista horários disponíveis |
+| POST | `/api/agendar` | Cria agendamento |
+| PUT  | `/api/agendar/:id` | Edita agendamento |
+| DELETE | `/api/agendar/:id` | Cancela agendamento |
+| GET  | `/api/meus-agendamentos` | Lista agendamentos do usuário logado |
+| POST | `/api/admin/login` | Login do painel admin |
+| GET  | `/admin/agendamentos` | Lista todos os agendamentos (admin) |
+
+---
+
+## 🔧 Deploy
+
+Sugestões de plataformas:
+
+- **Banco de dados**: Railway, PlanetScale ou Clever Cloud (MySQL gerenciado)
+- **Backend**: Railway, Render ou Fly.io (Node.js)
+- **Variáveis de ambiente**: configure no painel da plataforma escolhida
+
+Em produção, defina também `NODE_ENV=production` e use HTTPS.
+
+---
+
+## 🆘 Troubleshooting
+
+| Erro | Solução |
+|------|---------|
+| `Cannot find module` | Execute `npm install` |
+| `Connection refused` | Verifique se o MySQL está rodando e confira as variáveis do `.env` |
+| `Unknown database` | Crie o banco conforme o schema acima |
+| E-mail não enviado | Confira `GMAIL_USER` e `GMAIL_PASS` (use Senha de App, não a senha normal) |
+| OTP expirado | O código expira em 10 min; solicite um novo |
+
+---
+
+Desenvolvido por Caique Crepaldi — 2026

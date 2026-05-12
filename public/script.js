@@ -153,19 +153,28 @@ if (formAgendamento) {
 
       if (response.ok) {
         mostrarMensagem(
-          `✓ Agendamento confirmado! ${nome}, seu corte está marcado para ${formatarData(data)} às ${horario}. Entraremos em contato no WhatsApp ${telefone}`,
+          `✓ Agendamento confirmado! ${nome}, seu corte está marcado para ${formatarData(data)} às ${horario}.`,
           'sucesso'
         );
         formAgendamento.reset();
-        horariosContainer.innerHTML = '<div class="horarios-placeholder">Selecione uma data</div>';
         inputHorario.value = '';
 
-        // Rolar até a mensagem
+        // Recarrega os horários da data selecionada para refletir o slot agora ocupado
+        if (data) {
+          await carregarHorarios(data);
+        } else {
+          horariosContainer.innerHTML = '<div class="horarios-placeholder">Selecione uma data</div>';
+        }
+
         setTimeout(() => {
           mensagemDiv.scrollIntoView({ behavior: 'smooth' });
         }, 300);
       } else {
         mostrarMensagem(resultado.error || 'Erro ao realizar agendamento', 'erro');
+        // Se o horário foi tomado por outra pessoa, recarrega a lista
+        if (response.status === 409 && data) {
+          await carregarHorarios(data);
+        }
       }
     } catch (err) {
       console.error('Erro:', err);

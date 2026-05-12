@@ -3,23 +3,293 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meus Agendamentos</title>
+  <title>Meus Agendamentos - Barbearia</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <style>
-    .user-container { max-width: 900px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 10px #0001; padding: 32px; }
-    .user-title { text-align: center; margin-bottom: 32px; color: #1a1a1a; }
-    .user-table { width: 100%; border-collapse: collapse; margin-top: 24px; }
-    .user-table th, .user-table td { padding: 12px 8px; border-bottom: 1px solid #eee; text-align: left; }
-    .user-table th { background: #f5f5f5; color: #1a1a1a; }
-    .user-table tr:last-child td { border-bottom: none; }
-    .btn-edit, .btn-cancel { padding: 6px 12px; border: none; border-radius: 4px; cursor: pointer; margin-right: 5px; }
-    .btn-edit { background: #007bff; color: white; }
-    .btn-edit:hover { background: #0056b3; }
-    .btn-cancel { background: #dc3545; color: white; }
-    .btn-cancel:hover { background: #c82333; }
+    /* ── Layout da página ── */
+    body { background: var(--bg, #111); }
+
+    .ag-hero {
+      background: linear-gradient(135deg, #0d0d0d 0%, #1a1a1a 100%);
+      border-bottom: 1px solid rgba(212,175,55,0.12);
+      padding: 48px 20px 36px;
+      text-align: center;
+    }
+    .ag-hero-icon { font-size: 40px; margin-bottom: 10px; }
+    .ag-hero h1 { color: #d4af37; font-size: clamp(1.4rem,4vw,2rem); margin: 0 0 6px; }
+    .ag-hero p { color: #666; font-size: 0.875rem; margin: 0; }
+
+    .ag-wrap { max-width: 840px; margin: 40px auto; padding: 0 20px 80px; }
+
+    /* ── Cards ── */
+    .ag-list { display: flex; flex-direction: column; gap: 14px; }
+
+    .ag-card {
+      background: #181818;
+      border-radius: 12px;
+      border: 1px solid #252525;
+      border-top: 3px solid #b8860b;
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      transition: box-shadow 260ms ease, border-top-color 260ms ease;
+    }
+    .ag-card:hover { box-shadow: 0 8px 28px rgba(212,175,55,0.15); }
+    .ag-card.past { border-top-color: #2a2a2a; opacity: 0.6; }
+    .ag-card.past:hover { box-shadow: none; }
+
+    .ag-badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .badge-upcoming { background: rgba(212,175,55,0.12); color: #d4af37; border: 1px solid rgba(212,175,55,0.25); }
+    .badge-past     { background: rgba(255,255,255,0.04); color: #555; border: 1px solid #2a2a2a; }
+
+    .ag-service { color: #f0c547; font-size: 1.05rem; font-weight: 700; margin-bottom: 10px; }
+
+    .ag-meta { display: flex; flex-wrap: wrap; gap: 14px; color: #888; font-size: 0.85rem; }
+    .ag-meta span { display: flex; align-items: center; gap: 5px; }
+
+    .ag-actions { display: flex; flex-direction: column; gap: 8px; min-width: 88px; }
+
+    .btn-edit, .btn-del {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 700;
+      transition: all 160ms ease;
+      text-align: center;
+    }
+    .btn-edit {
+      background: rgba(212,175,55,0.12);
+      color: #d4af37;
+      border: 1px solid rgba(212,175,55,0.25);
+    }
+    .btn-edit:hover { background: #b8860b; color: #111; }
+    .btn-del {
+      background: rgba(220,53,69,0.1);
+      color: #ff6b7a;
+      border: 1px solid rgba(220,53,69,0.2);
+    }
+    .btn-del:hover { background: #dc3545; color: #fff; }
+
+    /* ── Empty state ── */
+    .ag-empty {
+      text-align: center;
+      padding: 64px 20px;
+      color: #444;
+    }
+    .ag-empty-icon { font-size: 52px; margin-bottom: 16px; }
+    .ag-empty p { margin-bottom: 20px; font-size: 0.95rem; }
+    .ag-empty a {
+      display: inline-block;
+      padding: 10px 28px;
+      background: linear-gradient(135deg, #b8860b, #a67c00);
+      color: #111;
+      border-radius: 8px;
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 0.9rem;
+    }
+
+    /* ── Modal overlay ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.78);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 900;
+      padding: 16px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 260ms ease;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal-box {
+      background: #181818;
+      border-radius: 16px;
+      border: 1px solid rgba(212,175,55,0.12);
+      box-shadow: 0 36px 90px rgba(0,0,0,0.65);
+      width: 100%;
+      max-width: 500px;
+      max-height: 92vh;
+      overflow-y: auto;
+      transform: translateY(24px) scale(0.98);
+      transition: transform 260ms cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .modal-overlay.open .modal-box { transform: translateY(0) scale(1); }
+
+    .modal-head {
+      background: linear-gradient(135deg, #b8860b, #a67c00);
+      padding: 18px 22px;
+      border-radius: 16px 16px 0 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-head h2 { color: #111; font-size: 1rem; margin: 0; }
+    .modal-close-btn {
+      background: rgba(0,0,0,0.18);
+      border: none;
+      color: #111;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-body { padding: 22px 22px 0; }
+
+    .field-label {
+      display: block;
+      color: #777;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin: 18px 0 6px;
+    }
+    .field-label:first-child { margin-top: 0; }
+
+    .field-input, .field-select {
+      width: 100%;
+      background: #0f0f0f;
+      border: 1.5px solid #272727;
+      border-radius: 8px;
+      color: #f0f0f0;
+      padding: 10px 14px;
+      font-size: 0.9rem;
+      box-sizing: border-box;
+      transition: border-color 160ms;
+    }
+    .field-input:focus, .field-select:focus { outline: none; border-color: #b8860b; }
+    .field-select option { background: #1a1a1a; }
+
+    /* slot grid no modal */
+    .modal-slots {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin-top: 4px;
+    }
+    .slot-btn {
+      padding: 9px 4px;
+      background: #111;
+      border: 1.5px solid #252525;
+      border-radius: 6px;
+      color: #888;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 160ms;
+      text-align: center;
+    }
+    .slot-btn:hover { border-color: #b8860b; color: #d4af37; }
+    .slot-btn.selected { background: rgba(212,175,55,0.12); border-color: #d4af37; color: #f0c547; font-weight: 700; }
+    .slots-placeholder { color: #555; font-size: 0.85rem; padding: 14px 0; text-align: center; grid-column: 1/-1; }
+
+    .modal-foot {
+      padding: 18px 22px 22px;
+      display: flex;
+      gap: 10px;
+    }
+    .btn-save {
+      flex: 1;
+      background: linear-gradient(135deg, #b8860b, #a67c00);
+      color: #111;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: opacity 160ms;
+    }
+    .btn-save:hover { opacity: 0.88; }
+    .btn-save:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-secondary {
+      background: #222;
+      color: #888;
+      border: 1px solid #2a2a2a;
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 160ms;
+    }
+    .btn-secondary:hover { background: #2a2a2a; }
+
+    /* ── Modal de confirmação de cancelamento ── */
+    .confirm-box { max-width: 340px; }
+    .confirm-body { padding: 28px 22px 0; text-align: center; }
+    .confirm-icon { font-size: 44px; margin-bottom: 12px; }
+    .confirm-body h3 { color: #f0f0f0; margin: 0 0 8px; font-size: 1.05rem; }
+    .confirm-body p { color: #777; font-size: 0.85rem; margin: 0 0 4px; }
+    .confirm-detail { color: #f0c547; font-size: 0.9rem; font-weight: 700; margin-top: 10px !important; }
+    .btn-confirm-del {
+      flex: 1;
+      background: #dc3545;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 160ms;
+    }
+    .btn-confirm-del:hover { background: #c82333; }
+    .btn-confirm-del:disabled { opacity: 0.5; }
+
+    /* ── Toast ── */
+    .toast {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%) translateY(90px);
+      background: #1e1e1e;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 13px 26px;
+      color: #f0f0f0;
+      font-size: 0.875rem;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.55);
+      z-index: 1100;
+      transition: transform 300ms cubic-bezier(0.34,1.56,0.64,1);
+      max-width: calc(100vw - 40px);
+      text-align: center;
+      white-space: nowrap;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { border-color: rgba(212,175,55,0.35); color: #d4af37; }
+    .toast.error   { border-color: rgba(220,53,69,0.35); color: #ff6b7a; }
+
+    @media (max-width: 580px) {
+      .ag-card { grid-template-columns: 1fr; }
+      .ag-actions { flex-direction: row; }
+      .modal-slots { grid-template-columns: repeat(3,1fr); }
+    }
   </style>
 </head>
 <body>
+
   <header>
     <div class="container">
       <h1 class="logo">✂️ Barbearia</h1>
@@ -30,133 +300,398 @@
           <li><a href="index.html#agendar">Agendar</a></li>
           <li><a href="index.html#contato">Contato</a></li>
           <li id="nav-login"><a href="login.html">Login</a></li>
-          <li id="nav-agendamentos" style="display:none;"><a href="meus-agendamentos.html">Meus Agendamentos</a></li>
-          <li id="nav-logout" style="display:none;"><a href="#" onclick="logoutUser();return false;">Logout</a></li>
-          <script>
-            // Navbar dinâmica conforme login
-            async function checkSessionNavbar() {
-              const res = await fetch('/api/session');
-              const data = await res.json();
-              const navLogin = document.getElementById('nav-login');
-              const navAg = document.getElementById('nav-agendamentos');
-              const navLogout = document.getElementById('nav-logout');
-              if (data.loggedIn) {
-                navLogin.style.display = 'none';
-                navAg.style.display = '';
-                navLogout.style.display = '';
-              } else {
-                navLogin.style.display = '';
-                navAg.style.display = 'none';
-                navLogout.style.display = 'none';
-              }
-            }
-            checkSessionNavbar();
-            window.logoutUser = async function() {
-              await fetch('/api/logout', { method: 'POST' });
-              window.location.href = 'index.html';
-            }
-          </script>
+          <li id="nav-agendamentos" style="display:none"><a href="meus-agendamentos.html">Meus Agendamentos</a></li>
+          <li id="nav-logout" style="display:none"><a href="#" onclick="doLogout();return false">Logout</a></li>
         </ul>
       </nav>
     </div>
   </header>
-  <div class="user-container">
-    <h1 class="user-title">Meus Agendamentos</h1>
-    <table class="user-table" id="agendamentosTable">
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Horário</th>
-          <th>Serviço</th>
-          <th>Agendado em</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody id="agendamentosBody">
-        <!-- Linhas serão inseridas via JS -->
-      </tbody>
-    </table>
+
+  <div class="ag-hero">
+    <div class="ag-hero-icon">📅</div>
+    <h1>Meus Agendamentos</h1>
+    <p id="heroSubtitle">Carregando...</p>
   </div>
+
+  <div class="ag-wrap">
+    <div class="ag-list" id="agList"></div>
+  </div>
+
+  <!-- ── Modal de edição ── -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-box">
+      <div class="modal-head">
+        <h2>✏️ Editar Agendamento</h2>
+        <button class="modal-close-btn" onclick="closeEdit()">×</button>
+      </div>
+      <div class="modal-body">
+        <label class="field-label">Data</label>
+        <input class="field-input" type="text" id="editData" placeholder="Selecione uma data" readonly>
+
+        <label class="field-label">Horário disponível</label>
+        <div class="modal-slots" id="editSlots">
+          <div class="slots-placeholder">Selecione uma data primeiro</div>
+        </div>
+        <input type="hidden" id="editHorario">
+
+        <label class="field-label">Serviço</label>
+        <select class="field-select" id="editServico">
+          <option value="">Selecione um serviço</option>
+          <option value="Corte Simples">Corte Simples — R$ 35,00</option>
+          <option value="Corte + Barba">Corte + Barba — R$ 55,00</option>
+          <option value="Corte Premium">Corte Premium — R$ 70,00</option>
+          <option value="Barba">Barba — R$ 30,00</option>
+        </select>
+
+        <label class="field-label">Telefone</label>
+        <input class="field-input" type="text" id="editTelefone" placeholder="(00) 00000-0000" maxlength="15">
+      </div>
+      <div class="modal-foot">
+        <button class="btn-secondary" onclick="closeEdit()">Cancelar</button>
+        <button class="btn-save" id="btnSalvar" onclick="salvarEdicao()">Salvar alterações</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal de confirmação de cancelamento ── -->
+  <div class="modal-overlay" id="cancelModal">
+    <div class="modal-box confirm-box">
+      <div class="modal-head">
+        <h2>Cancelar agendamento</h2>
+        <button class="modal-close-btn" onclick="closeCancel()">×</button>
+      </div>
+      <div class="confirm-body">
+        <div class="confirm-icon">🗑️</div>
+        <h3>Tem certeza?</h3>
+        <p>Esta ação não poderá ser desfeita.</p>
+        <p class="confirm-detail" id="cancelDetail"></p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-secondary" onclick="closeCancel()">Voltar</button>
+        <button class="btn-confirm-del" id="btnConfirmDel" onclick="confirmarCancelamento()">Sim, cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/pt.js"></script>
   <script>
-    // Busca agendamentos do usuário autenticado
-    fetch('/api/meus-agendamentos')
-      .then(res => {
-        if (res.status === 401) {
-          window.location.href = 'login.html';
-          return null;
+    // ── Estado ──────────────────────────────────────────────
+    let agendamentos = [];
+    let editingId = null;
+    let cancelingId = null;
+    let editFp = null; // instância flatpickr
+
+    // ── Inicialização ────────────────────────────────────────
+    (async () => {
+      const res = await fetch('/api/session');
+      const session = await res.json();
+      if (!session.loggedIn) { window.location.href = 'login.html'; return; }
+
+      // navbar
+      document.getElementById('nav-login').style.display = 'none';
+      document.getElementById('nav-agendamentos').style.display = '';
+      document.getElementById('nav-logout').style.display = '';
+
+      await carregarAgendamentos();
+    })();
+
+    window.doLogout = async () => {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = 'index.html';
+    };
+
+    // ── Carregar e renderizar agendamentos ───────────────────
+    async function carregarAgendamentos() {
+      try {
+        const res = await fetch('/api/meus-agendamentos');
+        if (res.status === 401) { window.location.href = 'login.html'; return; }
+        agendamentos = await res.json();
+        renderizarLista();
+      } catch {
+        document.getElementById('agList').innerHTML =
+          '<div class="ag-empty"><div class="ag-empty-icon">⚠️</div><p>Erro ao carregar agendamentos.</p></div>';
+      }
+    }
+
+    function renderizarLista() {
+      const list = document.getElementById('agList');
+      const subtitle = document.getElementById('heroSubtitle');
+
+      if (!agendamentos.length) {
+        subtitle.textContent = 'Nenhum agendamento encontrado';
+        list.innerHTML = `
+          <div class="ag-empty">
+            <div class="ag-empty-icon">📭</div>
+            <p>Você ainda não tem agendamentos.</p>
+            <a href="index.html#agendar">Agendar agora</a>
+          </div>`;
+        return;
+      }
+
+      const upcoming = agendamentos.filter(a => !isPast(a));
+      subtitle.textContent = upcoming.length
+        ? `${upcoming.length} agendamento${upcoming.length > 1 ? 's' : ''} ativo${upcoming.length > 1 ? 's' : ''}`
+        : 'Sem agendamentos futuros';
+
+      list.innerHTML = agendamentos.map(ag => {
+        const past = isPast(ag);
+        const dataFmt = fmtData(ag.data);
+        const horFmt = fmtHorario(ag.horario);
+        const badge = past
+          ? '<span class="ag-badge badge-past">Concluído</span>'
+          : '<span class="ag-badge badge-upcoming">Agendado</span>';
+        const actions = past ? '' : `
+          <div class="ag-actions">
+            <button class="btn-edit" onclick="abrirEdicao(${ag.id})">✏️ Editar</button>
+            <button class="btn-del"  onclick="abrirCancelamento(${ag.id})">🗑️ Cancelar</button>
+          </div>`;
+        return `
+          <div class="ag-card${past ? ' past' : ''}">
+            <div>
+              ${badge}
+              <div class="ag-service">${ag.servico}</div>
+              <div class="ag-meta">
+                <span>📅 ${dataFmt}</span>
+                <span>🕐 ${horFmt}</span>
+              </div>
+            </div>
+            ${actions}
+          </div>`;
+      }).join('');
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
+    function isPast(ag) {
+      const dataStr = ag.data instanceof Date
+        ? ag.data.toISOString().split('T')[0]
+        : String(ag.data).split('T')[0];
+      const horStr = fmtHorario(ag.horario);
+      const dt = new Date(`${dataStr}T${horStr}:00`);
+      return dt < new Date();
+    }
+
+    function fmtData(d) {
+      const s = d instanceof Date ? d.toISOString().split('T')[0] : String(d).split('T')[0];
+      const [y, m, dia] = s.split('-');
+      return `${dia}/${m}/${y}`;
+    }
+
+    function fmtHorario(h) {
+      if (!h) return '';
+      return String(h).slice(0, 5);
+    }
+
+    function rawData(ag) {
+      const d = ag.data instanceof Date ? ag.data : new Date(ag.data);
+      const s = ag.data instanceof Date
+        ? ag.data.toISOString().split('T')[0]
+        : String(ag.data).split('T')[0];
+      return s;
+    }
+
+    // ── Modal de edição ──────────────────────────────────────
+    function abrirEdicao(id) {
+      const ag = agendamentos.find(a => a.id === id);
+      if (!ag) return;
+      editingId = id;
+
+      // Pré-preenche telefone e serviço
+      document.getElementById('editTelefone').value = ag.telefone || '';
+      document.getElementById('editServico').value = ag.servico || '';
+      document.getElementById('editHorario').value = fmtHorario(ag.horario);
+      document.getElementById('editSlots').innerHTML = '<div class="slots-placeholder">Selecione uma data primeiro</div>';
+
+      const dataStr = rawData(ag);
+      const hoje = new Date();
+      const amanha = new Date(hoje.getTime() + 24 * 60 * 60 * 1000);
+
+      // Destroi instância anterior do flatpickr
+      if (editFp) { editFp.destroy(); editFp = null; }
+
+      editFp = flatpickr('#editData', {
+        locale: 'pt',
+        minDate: amanha,
+        maxDate: new Date(hoje.getFullYear(), hoje.getMonth() + 3, hoje.getDate()),
+        dateFormat: 'Y-m-d',
+        altInput: true,
+        altFormat: 'D, d/m/Y',
+        defaultDate: dataStr,
+        onChange: async ([date]) => {
+          if (!date) return;
+          const d = date.toISOString().split('T')[0];
+          await carregarSlotsEdicao(d);
         }
-        return res.json();
-      })
-      .then(agendamentos => {
-        if (!agendamentos) return;
-        const tbody = document.getElementById('agendamentosBody');
-        tbody.innerHTML = '';
-        if (!agendamentos.length) {
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum agendamento encontrado.</td></tr>';
+      });
+
+      // Máscara de telefone
+      const telInput = document.getElementById('editTelefone');
+      telInput.oninput = (e) => {
+        let v = e.target.value.replace(/\D/g, '').slice(0, 11);
+        if (v.length > 6) v = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+        else if (v.length > 2) v = `(${v.slice(0,2)}) ${v.slice(2)}`;
+        else if (v.length) v = `(${v}`;
+        e.target.value = v;
+      };
+
+      // Carrega os slots da data atual do agendamento (excluindo o próprio)
+      carregarSlotsEdicao(dataStr, fmtHorario(ag.horario));
+
+      document.getElementById('editModal').classList.add('open');
+    }
+
+    async function carregarSlotsEdicao(data, horarioAtual = null) {
+      const container = document.getElementById('editSlots');
+      container.innerHTML = '<div class="slots-placeholder">⏳ Carregando...</div>';
+      document.getElementById('editHorario').value = '';
+
+      try {
+        const res = await fetch(`/api/horarios?data=${encodeURIComponent(data)}&excludeId=${editingId}`);
+        const slots = await res.json();
+
+        if (!Array.isArray(slots) || !slots.length) {
+          container.innerHTML = '<div class="slots-placeholder">Nenhum horário disponível nesta data</div>';
           return;
         }
-        agendamentos.forEach(ag => {
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${formatarData(ag.data)}</td>
-            <td>${ag.horario}</td>
-            <td>${ag.servico}</td>
-            <td>${formatarDataHora(ag.data_agendamento)}</td>
-            <td>
-              <button onclick="editarAgendamento(${ag.id}, '${ag.data}', '${ag.horario}', '${ag.servico}', '${ag.telefone}')" class="btn-edit">Editar</button>
-              <button onclick="cancelarAgendamento(${ag.id})" class="btn-cancel">Cancelar</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
+
+        container.innerHTML = '';
+        slots.forEach(h => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'slot-btn';
+          btn.textContent = h;
+          // Pré-seleciona o horário atual do agendamento se estiver disponível
+          if (h === horarioAtual || (!horarioAtual && h === document.getElementById('editHorario').value)) {
+            btn.classList.add('selected');
+            document.getElementById('editHorario').value = h;
+          }
+          btn.onclick = () => {
+            container.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            document.getElementById('editHorario').value = h;
+          };
+          container.appendChild(btn);
         });
-      })
-      .catch(() => {
-        document.getElementById('agendamentosBody').innerHTML = '<tr><td colspan="5" style="color:#b00;text-align:center;">Erro ao carregar agendamentos.</td></tr>';
-      });
-    function formatarData(dataStr) {
-      if (!dataStr) return '';
-      const d = new Date(dataStr);
-      if (isNaN(d)) return dataStr;
-      return d.toLocaleDateString('pt-BR');
-    }
-    function formatarDataHora(dataStr) {
-      if (!dataStr) return '';
-      const d = new Date(dataStr);
-      if (isNaN(d)) return dataStr;
-      return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR').slice(0,5);
-    }
-    async function editarAgendamento(id, data, horario, servico, telefone) {
-      // Abrir modal de edição
-      const novaData = prompt('Nova data (AAAA-MM-DD):', data);
-      if (!novaData) return;
-      const novoHorario = prompt('Novo horário (HH:MM):', horario);
-      if (!novoHorario) return;
-      const novoServico = prompt('Novo serviço:', servico);
-      if (!novoServico) return;
-      const novoTelefone = prompt('Novo telefone:', telefone);
-      if (!novoTelefone) return;
-      
-      const res = await fetch(`/api/agendar/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data: novaData, horario: novoHorario, servico: novoServico, telefone: novoTelefone })
-      });
-      if (res.ok) {
-        alert('Agendamento atualizado!');
-        location.reload();
-      } else {
-        alert('Erro ao atualizar agendamento.');
+
+        // Se o horário atual não estava na lista (foi excluído por excludeId), adiciona ele como selecionado
+        if (horarioAtual && !slots.includes(horarioAtual)) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'slot-btn selected';
+          btn.textContent = horarioAtual;
+          btn.onclick = () => {
+            container.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            document.getElementById('editHorario').value = horarioAtual;
+          };
+          container.insertBefore(btn, container.firstChild);
+          document.getElementById('editHorario').value = horarioAtual;
+        }
+      } catch {
+        container.innerHTML = '<div class="slots-placeholder">Erro ao carregar horários</div>';
       }
     }
-    async function cancelarAgendamento(id) {
-      if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
-      const res = await fetch(`/api/agendar/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        alert('Agendamento cancelado!');
-        location.reload();
-      } else {
-        alert('Erro ao cancelar agendamento.');
+
+    function closeEdit() {
+      document.getElementById('editModal').classList.remove('open');
+      editingId = null;
+      if (editFp) { editFp.destroy(); editFp = null; }
+    }
+
+    async function salvarEdicao() {
+      const data    = document.getElementById('editData').value;
+      const horario = document.getElementById('editHorario').value;
+      const servico = document.getElementById('editServico').value;
+      const tel     = document.getElementById('editTelefone').value.trim();
+
+      if (!data)    { showToast('Selecione uma data', 'error'); return; }
+      if (!horario) { showToast('Selecione um horário', 'error'); return; }
+      if (!servico) { showToast('Selecione um serviço', 'error'); return; }
+      if (!tel || tel.replace(/\D/g,'').length < 11) { showToast('Telefone inválido', 'error'); return; }
+
+      const btn = document.getElementById('btnSalvar');
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+
+      try {
+        const res = await fetch(`/api/agendar/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data, horario, servico, telefone: tel })
+        });
+        const json = await res.json();
+        if (res.ok) {
+          closeEdit();
+          showToast('Agendamento atualizado! Você receberá um e-mail de confirmação.', 'success');
+          await carregarAgendamentos();
+        } else {
+          showToast(json.error || 'Erro ao atualizar agendamento', 'error');
+          if (res.status === 409) await carregarSlotsEdicao(data);
+        }
+      } catch {
+        showToast('Erro ao conectar com o servidor', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Salvar alterações';
       }
+    }
+
+    // ── Modal de cancelamento ────────────────────────────────
+    function abrirCancelamento(id) {
+      const ag = agendamentos.find(a => a.id === id);
+      if (!ag) return;
+      cancelingId = id;
+      document.getElementById('cancelDetail').textContent =
+        `${ag.servico} — ${fmtData(ag.data)} às ${fmtHorario(ag.horario)}`;
+      document.getElementById('cancelModal').classList.add('open');
+    }
+
+    function closeCancel() {
+      document.getElementById('cancelModal').classList.remove('open');
+      cancelingId = null;
+    }
+
+    async function confirmarCancelamento() {
+      const btn = document.getElementById('btnConfirmDel');
+      btn.disabled = true;
+      btn.textContent = 'Cancelando...';
+      try {
+        const res = await fetch(`/api/agendar/${cancelingId}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (res.ok) {
+          closeCancel();
+          showToast('Agendamento cancelado. Você receberá um e-mail de confirmação.', 'success');
+          await carregarAgendamentos();
+        } else {
+          showToast(json.error || 'Erro ao cancelar agendamento', 'error');
+        }
+      } catch {
+        showToast('Erro ao conectar com o servidor', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sim, cancelar';
+      }
+    }
+
+    // ── Fechar modal ao clicar fora ──────────────────────────
+    document.getElementById('editModal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeEdit();
+    });
+    document.getElementById('cancelModal').addEventListener('click', e => {
+      if (e.target === e.currentTarget) closeCancel();
+    });
+
+    // ── Toast ────────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = `toast ${type} show`;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove('show'), 3800);
     }
   </script>
 </body>
