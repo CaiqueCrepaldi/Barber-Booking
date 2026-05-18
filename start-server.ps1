@@ -1,2 +1,2 @@
-cd "C:\Users\Caique\Documents\Sites\barbearia"
-node server.js
+cd "$PSScriptRoot\backend"
+npm start
