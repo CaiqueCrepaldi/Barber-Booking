@@ -465,10 +465,7 @@ app.post('/api/forgot-password', async (req, res) => {
 
     const emailSent = await sendOtpEmail(email, otp).catch(() => false);
 
-    const response = { success: true };
-    if (!emailSent) response.demo = otp; // modo demo: devolve o código quando e-mail não configurado
-
-    res.json(response);
+    res.json({ success: true });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erro ao processar solicitação' });
