@@ -42,12 +42,14 @@ if (!process.env.MYSQL_PASSWORD) {
 
 const dbConfig = {
   host: process.env.MYSQL_HOST || 'localhost',
+  port: parseInt(process.env.MYSQL_PORT || '3306', 10),
   user: process.env.MYSQL_USER || 'root',
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_DATABASE || 'barbearia_db',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0
+  queueLimit: 0,
+  ssl: process.env.MYSQL_SSL === 'true' ? { rejectUnauthorized: true } : undefined
 };
 
 let pool;
@@ -388,10 +390,6 @@ app.post('/api/login', async (req, res) => {
     console.error(err);
     res.status(500).json({ error: 'Erro ao autenticar usuário' });
   }
-});
-
-app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/index.html');
 });
 
 app.post('/api/registrar', async (req, res) => {
