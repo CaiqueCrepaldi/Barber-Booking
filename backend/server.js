@@ -1,14 +1,19 @@
-require('dotenv').config();
+import { config as dotenvConfig } from 'dotenv'
+import { sanitizeText } from './utils.js'
+import express from 'express'
+import path from 'path'
+import { fileURLToPath } from 'url'
+import bodyParser from 'body-parser'
+import mysql from 'mysql2/promise'
+import session from 'express-session'
+import cron from 'node-cron'
+import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
+import nodemailer from 'nodemailer'
 
-const express = require('express');
-const path = require('path');
-const bodyParser = require('body-parser');
-const mysql = require('mysql2/promise');
-const session = require('express-session');
-const cron = require('node-cron');
-const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
-const nodemailer = require('nodemailer');
+dotenvConfig()
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const __filename = fileURLToPath(import.meta.url)
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -294,12 +299,6 @@ cron.schedule('*/5 * * * *', async () => {
     console.error('Erro ao limpar agendamentos expirados:', err);
   }
 });
-
-// Remove caracteres especiais de strings usadas em mensagens
-function sanitizeText(str) {
-  if (!str) return '';
-  return String(str).replace(/[<>&"'`\\]/g, '');
-}
 
 // Middleware: exige sessão de admin ativa
 function requireAdmin(req, res, next) {
@@ -809,6 +808,10 @@ app.get('/admin/agendamentos', requireAdmin, async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`✓ Servidor rodando em http://localhost:${PORT}`);
-});
+if (process.argv[1] === __filename) {
+  app.listen(PORT, () => {
+    console.log(`✓ Servidor rodando em http://localhost:${PORT}`);
+  });
+}
+
+export default app;
